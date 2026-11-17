@@ -121,6 +121,16 @@ blockquote{margin:6px 0 0;border-left:3px solid var(--ln);padding-left:12px;font
 .ans .body code{background:#0c0f12;padding:1px 5px;border-radius:3px;font-size:14px}
 .ans .copy{color:var(--lk);margin-top:10px}
 .ans img.pic{display:block;width:512px;max-width:100%;border-radius:6px;border:1px solid var(--ln);margin-top:4px}
+.rr{display:flex;align-items:center;gap:16px;color:var(--mu);font-style:italic;padding:6px 0}
+.rr b{color:#f6821f;font-weight:400}
+.dl{display:grid;grid-template-columns:repeat(6,5px);gap:6px;flex:none}
+.dl i{width:4px;height:4px;border-radius:50%;background:#f6821f;opacity:.15;animation:dp 1.3s ease-in-out infinite;animation-delay:var(--d)}
+@keyframes dp{0%,100%{opacity:.15;transform:scale(.7)}50%{opacity:1;transform:scale(1.2)}}
+@media(prefers-reduced-motion:reduce){.dl i{animation:none;opacity:.7}}
+#chat::before,#chat::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;background-image:radial-gradient(circle,#9aa0a6 1px,transparent 1.6px);background-size:24px 24px}
+#chat::before{opacity:.08}
+#chat::after{opacity:.55;-webkit-mask-image:radial-gradient(circle 150px at var(--mx,-999px) var(--my,-999px),#000 0,transparent 100%);mask-image:radial-gradient(circle 150px at var(--mx,-999px) var(--my,-999px),#000 0,transparent 100%)}
+#cmain,#side{z-index:1}
 #tip{position:fixed;left:14px;bottom:12px;font-size:12px;color:#8a8a8a;background:#1a1a1a;border:1px solid #2c2c2c;border-radius:6px;padding:5px 9px;max-width:220px}
 @media(max-width:1500px){#tip{max-width:none;white-space:nowrap;background:none;border:0;padding:0;bottom:6px;font-size:11px}}
 @media(max-width:700px){#wrap{padding:0 14px 40px}.ctr{position:static;transform:none}.ch-top{flex-wrap:wrap}#tip{position:static;margin:0 16px 10px;max-width:none}}
@@ -318,6 +328,9 @@ $("#home").onclick=$("#tab").onclick=home;
 /* ---------- chat ---------- */
 let hist=[],busy=false;
 const cin=$("#cin"),msgs=$("#msgs");
+const LDOTS=Array.from({length:36},(_,i)=>'<i style="--d:'+(((i%6)+Math.floor(i/6))*.08).toFixed(2)+'s"></i>').join("");
+function loader(msg){return '<div class="rr"><div class="dl">'+LDOTS+'</div><span>'+(msg?esc(msg):'Returning <b>results…</b>')+'</span></div>'}
+$("#chat").addEventListener("pointermove",e=>{const c=$("#chat");c.style.setProperty("--mx",e.clientX+"px");c.style.setProperty("--my",e.clientY+"px")});
 const col=$("#col");
 function fmt(t){
   const lines=esc(t).replace(/```[a-z]*\n?/g,"").split("\n");
@@ -335,7 +348,7 @@ function fmt(t){
 }
 function addEntry(qs,thumb){
   const el=document.createElement("section");el.className="entry ans";
-  el.innerHTML='<h2></h2>'+(thumb?'<img class="thumb" alt="">':'')+'<div class="pos">Entry</div><div class="body muted">Searching…</div>';
+  el.innerHTML='<h2></h2>'+(thumb?'<img class="thumb" alt="">':'')+'<div class="pos">Entry</div><div class="body">'+loader()+'</div>';
   if(thumb)el.querySelector(".thumb").src=thumb;
   el.querySelector("h2").textContent=qs;
   col.appendChild(el);el.scrollIntoView({block:"start"});
@@ -416,15 +429,15 @@ async function makeImage(label,idea,att){
   try{
     let prompt=idea;
     if(att){
-      ent.body.textContent="Studying your picture…";
+      ent.body.innerHTML=loader("Studying your picture…");
       try{
         const r=await ask([{role:"user",content:"Write ONE detailed image-generation prompt (under 80 words, no preamble, no quotes) that uses the attached picture as the visual reference"+(idea?" and applies this idea: "+idea:", restyled as an illustration")+".",img:{mime:att.mime,data:att.data}}]);
         prompt=r.replace(/\s+/g," ").replace(/^[\"']+|[\"']+$/g,"").trim()||idea;
       }catch(e){prompt=idea||"an illustration inspired by a photograph"}
     }
     const wait=Math.max(0,15000-(Date.now()-lastImg));      /* free tier: about 1 image per 15 s */
-    if(wait){ent.body.textContent="Preparing illustration…";await new Promise(r=>setTimeout(r,wait))}
-    lastImg=Date.now();ent.body.textContent="Searching…";
+    if(wait){ent.body.innerHTML=loader("Preparing illustration…");await new Promise(r=>setTimeout(r,wait))}
+    lastImg=Date.now();ent.body.innerHTML=loader();
     const url="https://image.pollinations.ai/prompt/"+encodeURIComponent(prompt.slice(0,400))+"?model=flux&width=768&height=768&nologo=true&seed="+Math.floor(Math.random()*1e6);
     await new Promise((ok,no)=>{
       const im=new Image();im.className="pic";im.alt=prompt;im.referrerPolicy="no-referrer";
