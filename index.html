@@ -121,12 +121,18 @@ blockquote{margin:6px 0 0;border-left:3px solid var(--ln);padding-left:12px;font
 .ans .body code{background:#0c0f12;padding:1px 5px;border-radius:3px;font-size:14px}
 .ans .copy{color:var(--lk);margin-top:10px}
 .ans img.pic{display:block;width:512px;max-width:100%;border-radius:6px;border:1px solid var(--ln);margin-top:4px}
-.rr{display:flex;align-items:center;gap:16px;color:var(--mu);font-style:italic;padding:6px 0}
-.rr b{color:#f6821f;font-weight:400}
-.dl{display:grid;grid-template-columns:repeat(6,5px);gap:6px;flex:none}
-.dl i{width:4px;height:4px;border-radius:50%;background:#f6821f;opacity:.15;animation:dp 1.3s ease-in-out infinite;animation-delay:var(--d)}
-@keyframes dp{0%,100%{opacity:.15;transform:scale(.7)}50%{opacity:1;transform:scale(1.2)}}
+.rr{display:flex;align-items:center;gap:12px;color:var(--mu);font-style:italic;font-size:14px;padding:4px 0}
+.dl{display:flex;align-items:center;gap:5px;height:16px}
+.dl i{width:3px;height:3px;border-radius:50%;background:#8b929a;opacity:.35;animation:dw 1.1s ease-in-out infinite;animation-delay:var(--d)}
+@keyframes dw{0%,100%{transform:translateY(0);opacity:.35}50%{transform:translateY(-5px);opacity:1}}
 @media(prefers-reduced-motion:reduce){.dl i{animation:none;opacity:.7}}
+.umsg{background:#242b32;border-radius:14px;padding:10px 16px;width:fit-content;max-width:100%;margin:0 0 10px;overflow-wrap:anywhere}
+.umsg img.thumb{display:block;height:64px;border-radius:6px;margin:0 0 8px}
+.ans{border:0;border-radius:14px}
+#side .box{padding:12px;margin-bottom:14px}
+#side .box h1{font-size:20px}
+#side .box div{font-size:14px}
+#side .wotd h3{font-size:28px}
 #chat::before,#chat::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;background-image:radial-gradient(circle,#9aa0a6 1px,transparent 1.6px);background-size:24px 24px}
 #chat::before{opacity:.08}
 #chat::after{opacity:.55;-webkit-mask-image:radial-gradient(circle 150px at var(--mx,-999px) var(--my,-999px),#000 0,transparent 100%);mask-image:radial-gradient(circle 150px at var(--mx,-999px) var(--my,-999px),#000 0,transparent 100%)}
@@ -234,18 +240,39 @@ async function azLoad(l){
 let sideTok=0;
 function stopSide(){sideTok++}
 function buildSide(){
-  $("#side").innerHTML='<h2 class="sh">Random words</h2><div id="sgrid"></div>';
-  const tok=++sideTok,grid=$("#sgrid"),N=12,pool=WORDS.slice().sort(()=>Math.random()-.5);
+  const day=Math.floor(Date.now()/864e5),wd=WORDS[day%WORDS.length],id=IDIOMS[day%IDIOMS.length];
+  const letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(l=>'<span data-sl="'+l.toLowerCase()+'">'+l+'</span>').join("");
+  $("#side").innerHTML=
+  '<div class="box"><h1>Welcome to Blackwell Dictionary,</h1><div>the free dictionary for every word in English.</div></div>'+
+  '<div class="pn g wotd"><h2>Word of the day</h2><div class="pb"><h3>'+esc(wd.w)+'</h3><div class="pron"><button class="spk" data-w="'+esc(wd.w)+'" data-a="" data-s="0" aria-label="Pronounce '+esc(wd.w)+'"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg></button><i>'+esc(wd.p)+'</i></div><p>'+esc(wd.d)+'</p><span class="lk" data-w="'+esc(wd.w)+'">Full entry</span></div></div>'+
+  '<div class="pn b"><h2>Featured words</h2><div class="pb"><div id="sgrid"></div></div></div>'+
+  '<div class="pn b"><h2>Browse by letter</h2><div class="pb"><div class="az">'+letters+'</div><div id="sazres" class="muted">Pick a letter to see words that start with it.</div></div></div>'+
+  '<div class="pn g"><h2>Did you know …</h2><div class="pb"><ul>'+FACTS.map(f=>'<li>'+esc(f)+'</li>').join("")+'</ul></div></div>'+
+  '<div class="pn b"><h2>Idiom of the day</h2><div class="pb"><b>'+esc(id[0])+'</b> — '+esc(id[1])+'</div></div>';
+  const tok=++sideTok,grid=$("#sgrid"),pool=WORDS.slice().sort(()=>Math.random()-.5);
   let n=0,pos=0;
-  for(let i=0;i<N;i++){const c=document.createElement("div");c.className="card";c.innerHTML=cardHTML(pool[n++%pool.length]);grid.appendChild(c)}
+  for(let i=0;i<4;i++){const c=document.createElement("div");c.className="card";c.innerHTML=cardHTML(pool[n++%pool.length]);grid.appendChild(c)}
   const iv=setInterval(()=>{
     if(tok!==sideTok){clearInterval(iv);return}
     if(document.hidden||$("#chat").hidden)return;
-    const c=grid.children[pos++%N];c.style.animation="none";void c.offsetHeight;c.style.animation="";
+    const c=grid.children[pos++%4];c.style.animation="none";void c.offsetHeight;c.style.animation="";
     c.innerHTML=cardHTML(pool[n++%pool.length]);
-  },2200);
+  },2500);
 }
-$("#side").addEventListener("click",e=>{const w=e.target.closest("[data-w]");if(w){exitChat();search(w.dataset.w)}});
+async function sideAz(l){
+  const r=$("#sazres");r.textContent="Loading…";
+  $("#side").querySelectorAll(".az span").forEach(x=>x.classList.toggle("on",x.dataset.sl===l));
+  try{
+    const j=await (await fetch("https://api.datamuse.com/words?max=60&sp="+l+"*")).json();
+    const w=j.map(x=>x.word).filter(x=>/^[a-z]+$/.test(x));
+    r.innerHTML=w.length?w.map(x=>'<span class="lk" data-w="'+esc(x)+'">'+esc(x)+'</span>').join(" · "):"No words found.";
+  }catch(e){r.textContent="Couldn’t load words. Check your internet connection."}
+}
+$("#side").addEventListener("click",e=>{
+  const L=e.target.closest("[data-sl]");if(L){sideAz(L.dataset.sl);return}
+  const sp=e.target.closest(".spk");if(sp){speak(sp.dataset.w,sp.dataset.a);return}
+  const w=e.target.closest("[data-w]");if(w){exitChat();search(w.dataset.w)}
+});
 let chatUsed=false;
 function showChat(){chatUsed=true;$("#chat").hidden=false;$("#dict").hidden=true;buildSide();botReset();$("#cin").focus()}
 function exitChat(){
@@ -328,8 +355,8 @@ $("#home").onclick=$("#tab").onclick=home;
 /* ---------- chat ---------- */
 let hist=[],busy=false;
 const cin=$("#cin"),msgs=$("#msgs");
-const LDOTS=Array.from({length:36},(_,i)=>'<i style="--d:'+(((i%6)+Math.floor(i/6))*.08).toFixed(2)+'s"></i>').join("");
-function loader(msg){return '<div class="rr"><div class="dl">'+LDOTS+'</div><span>'+(msg?esc(msg):'Returning <b>results…</b>')+'</span></div>'}
+const LDOTS=Array.from({length:10},(_,i)=>'<i style="--d:'+(i*.1).toFixed(1)+'s"></i>').join("");
+function loader(msg){return '<div class="rr"><div class="dl">'+LDOTS+'</div>'+(msg?'<span>'+esc(msg)+'</span>':'')+'</div>'}
 $("#chat").addEventListener("pointermove",e=>{const c=$("#chat");c.style.setProperty("--mx",e.clientX+"px");c.style.setProperty("--my",e.clientY+"px")});
 const col=$("#col");
 function fmt(t){
@@ -347,14 +374,15 @@ function fmt(t){
   close();return h;
 }
 function addEntry(qs,thumb){
+  const u=document.createElement("div");u.className="umsg";
+  if(thumb){const im=document.createElement("img");im.className="thumb";im.alt="";im.src=thumb;u.appendChild(im)}
+  const t=document.createElement("div");t.textContent=qs;u.appendChild(t);
   const el=document.createElement("section");el.className="entry ans";
-  el.innerHTML='<h2></h2>'+(thumb?'<img class="thumb" alt="">':'')+'<div class="pos">Entry</div><div class="body">'+loader()+'</div>';
-  if(thumb)el.querySelector(".thumb").src=thumb;
-  el.querySelector("h2").textContent=qs;
-  col.appendChild(el);el.scrollIntoView({block:"start"});
-  return{el,body:el.querySelector(".body")};
+  el.innerHTML='<div class="pos">Entry</div><div class="body">'+loader()+'</div>';
+  col.appendChild(u);col.appendChild(el);u.scrollIntoView({block:"start"});
+  return{el,body:el.querySelector(".body"),u};
 }
-function clearEntries(){col.querySelectorAll(".ans").forEach(x=>x.remove())}
+function clearEntries(){col.querySelectorAll(".ans,.umsg").forEach(x=>x.remove())}
 function addCopy(m,text){
   const c=document.createElement("button");c.type="button";c.className="copy";c.textContent="Copy";
   c.onclick=async()=>{

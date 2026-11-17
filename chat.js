@@ -45,10 +45,11 @@ async function runChat(messages, env) {
   }
 }
 
-module.exports = async (req, res) => {
-  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
-  let body = req.body;
-  try { if (typeof body === "string") body = JSON.parse(body); } catch (e) { return res.status(400).json({ error: "Bad request." }); }
-  const [status, obj] = await runChat(body && body.messages, process.env);
-  return res.status(status).json(obj);
+exports.handler = async (event) => {
+  const reply = (status, obj) => ({ statusCode: status, headers: { "content-type": "application/json" }, body: JSON.stringify(obj) });
+  if (event.httpMethod !== "POST") return reply(405, { error: "POST only" });
+  let messages;
+  try { messages = JSON.parse(event.body).messages; } catch (e) { return reply(400, { error: "Bad request." }); }
+  const [status, obj] = await runChat(messages, process.env);
+  return reply(status, obj);
 };
